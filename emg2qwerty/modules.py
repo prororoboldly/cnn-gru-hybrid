@@ -395,3 +395,38 @@ class TDSConvEncoder(nn.Module):
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         return self.tds_conv_blocks(inputs)  # (T, N, num_features)
+
+
+class LSTMEncoder(nn.Module):
+    """Multi-layer bidirectional LSTM encoder for sequential EMG data.
+
+    Args:
+        num_features (int): Input size for an input of shape (T, N, num_features).
+        hidden_size (int): Number of features in the LSTM hidden state.
+        num_layers (int): Number of stacked LSTM layers.
+        dropout (float): Dropout between LSTM layers (ignored if num_layers=1).
+        bidirectional (bool): If True, use a bidirectional LSTM.
+    """
+
+    def __init__(
+        self,
+        num_features: int,
+        hidden_size: int = 256,
+        num_layers: int = 2,
+        dropout: float = 0.2,
+        bidirectional: bool = True,
+    ) -> None:
+        super().__init__()
+        self.lstm = nn.LSTM(
+            input_size=num_features,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=False,
+            dropout=dropout if num_layers > 1 else 0.0,
+            bidirectional=bidirectional,
+        )
+        self.out_features = hidden_size * (2 if bidirectional else 1)
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        x, _ = self.lstm(inputs)  # (T, N, hidden_size * num_directions)
+        return x
